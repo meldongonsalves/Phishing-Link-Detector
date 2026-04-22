@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Phishing Link Detector",
+  "version": "2.0",
+  "description": "AI-powered phishing detection combining public databases (OpenPhish/PhishTank), ML, typosquatting detection, WHOIS age checking, and Explainable AI.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://raw.githubusercontent.com/*",
+    "https://checkurl.phishtank.com/*",
+    "https://domaininfo.shreshtait.com/*",
+    "https://www.virustotal.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Phishing Link Detector"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "js": [
+        "featureExtractor.js",
+        "model.js",
+        "content.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "reports.html",
+        "demo_chatbot.html",
+        "test_page.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

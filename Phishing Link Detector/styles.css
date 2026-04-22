@@ -1,0 +1,30 @@
+/* styles.css */
+
+/* Flagged link highlight — subtle red background, wavy underline */
+.phishing-high-risk {
+  background-color: rgba(255, 60, 90, 0.10) !important;
+  color: #ff3c5a !important;
+  border: 1px solid rgba(255, 60, 90, 0.4) !important;
+  border-radius: 3px !important;
+  text-decoration: underline wavy #ff3c5a !important;
+  cursor: help !important;
+  padding: 0 2px !important;
+}
+
+/* Hover tooltip */
+.phishing-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  background: #13161e;
+  border: 1px solid #ff3c5a;
+  color: #e8eaf0;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(255, 60, 90, 0.18), 0 2px 8px rgba(0,0,0,0.4);
+  pointer-events: none;
+  max-width: 290px;
+  word-wrap: break-word;
+}

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexusAI — Demo Chatbot</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;700&display=swap');
+
+    :root {
+      --bg:        #080a0f;
+      --surface:   #0e1117;
+      --panel:     #131720;
+      --border:    #1c2030;
+      --border2:   #252c3d;
+      --accent:    #4f8eff;
+      --accent2:   #7c3aed;
+      --safe:      #10b981;
+      --danger:    #ef4444;
+      --text:      #e2e8f0;
+      --muted:     #4a5568;
+      --muted2:    #2d3748;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Outfit', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Subtle grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(79,142,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,142,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Top Bar ── */
+    .topbar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .logo-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .03em;
+    }
+
+    .logo-name span { color: var(--accent); }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16,185,129,.08);
+      border: 1px solid rgba(16,185,129,.2);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--safe);
+      font-family: var(--mono);
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--safe);
+      box-shadow: 0 0 6px var(--safe);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .demo-badge {
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.2);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--danger);
+      font-family: var(--mono);
+    }
+
+    /* ── Layout ── */
+    .layout {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+    }
+
+    .sidebar-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      padding: 4px 8px 8px;
+    }
+
+    .chat-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chat-item:hover { background: var(--panel); color: var(--text); }
+    .chat-item.active { background: rgba(79,142,255,.1); color: var(--accent); border: 1px solid rgba(79,142,255,.15); }
+
+    .new-chat-btn {
+      margin-top: auto;
+      padding: 9px;
+      border: 1px dashed var(--border2);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: var(--sans);
+    }
+    .new-chat-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Chat area ── */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Scenario quick-select */
+    .scenarios {
+      display: flex;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+
+    .scenarios::-webkit-scrollbar { display: none; }
+
+    .scenario-btn {
+      flex-shrink: 0;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-family: var(--sans);
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .scenario-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(79,142,255,.05);
+    }
+
+    /* Messages */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    /* Message rows */
+    .msg-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      animation: fadeUp .3s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .avatar.bot {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+    }
+
+    .avatar.user {
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .bubble {
+      max-width: 72%;
+      padding: 12px 15px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .bubble.bot {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-top-left-radius: 3px;
+    }
+
+    .bubble.user {
+      background: rgba(79,142,255,.12);
+      border: 1px solid rgba(79,142,255,.2);
+      border-top-right-radius: 3px;
+      color: #c7d8ff;
+    }
+
+    /* Links inside bot bubbles */
+    .bubble.bot a {
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 11px;
+      word-break: break-all;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(79,142,255,.3);
+      transition: color .15s;
+    }
+
+    .bubble.bot a:hover { color: #7fb3ff; }
+
+    /* Typing indicator */
+    .typing-row { display: flex; gap: 12px; align-items: center; }
+
+    .typing-bubble {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      border-top-left-radius: 3px;
+      padding: 12px 16px;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .typing-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: typingBounce 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: .15s; }
+    .typing-dot:nth-child(3) { animation-delay: .3s; }
+
+    @keyframes typingBounce {
+      0%,60%,100% { transform: translateY(0); opacity: .4; }
+      30% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    /* Input area */
+    .input-area {
+      flex-shrink: 0;
+      padding: 14px 20px 18px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 10px 14px;
+      transition: border-color .2s;
+    }
+
+    .input-row:focus-within { border-color: var(--accent); }
+
+    #userInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      resize: none;
+      max-height: 100px;
+      line-height: 1.5;
+    }
+
+    #userInput::placeholder { color: var(--muted); }
+
+    .send-btn {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      flex-shrink: 0;
+      transition: opacity .2s, transform .1s;
+    }
+
+    .send-btn:hover { opacity: .85; }
+    .send-btn:active { transform: scale(.93); }
+    .send-btn:disabled { opacity: .3; cursor: default; }
+
+    .input-hint {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 6px;
+      text-align: center;
+      font-family: var(--mono);
+    }
+
+    /* Warning notice */
+    .warning-bar {
+      background: rgba(239,68,68,.06);
+      border: 1px solid rgba(239,68,68,.15);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #fca5a5;
+      margin-bottom: 10px;
+      font-family: var(--mono);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">✦</div>
+      <div class="logo-name">Nexus<span>AI</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill"><div class="status-dot"></div>Online</div>
+      <div class="demo-badge">⚠ Demo Mode</div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-title">Conversations</div>
+      <div class="chat-item active">🔴 Phishing Demo</div>
+      <div class="chat-item">Help with banking</div>
+      <div class="chat-item">Find PayPal login</div>
+      <div class="chat-item">Account recovery</div>
+      <div class="chat-item">Tech support</div>
+      <div class="chat-item">Password reset</div>
+      <div class="new-chat-btn">+ New Chat</div>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-area">
+
+      <!-- Scenario buttons -->
+      <div class="scenarios">
+        <span style="font-size:11px;color:var(--muted);align-self:center;white-space:nowrap;font-family:var(--mono);">Try:</span>
+        <button class="scenario-btn" onclick="sendScenario('paypal')">PayPal login link</button>
+        <button class="scenario-btn" onclick="sendScenario('microsoft')">Microsoft support</button>
+        <button class="scenario-btn" onclick="sendScenario('banking')">Bank account help</button>
+        <button class="scenario-btn" onclick="sendScenario('apple')">Apple ID verify</button>
+        <button class="scenario-btn" onclick="sendScenario('safe')">Safe links only</button>
+        <button class="scenario-btn" onclick="sendScenario('mixed')">Mixed links</button>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages" id="messages">
+
+        <!-- Welcome message -->
+        <div class="msg-row">
+          <div class="avatar bot">✦</div>
+          <div class="bubble bot">
+            Hello! I'm <strong>NexusAI</strong> — a demo chatbot for testing the <strong>Phishing Link Detector</strong> extension.<br/><br/>
+            Try the scenario buttons above, or ask me anything like:<br/>
+            <em>"Give me a PayPal login link"</em> or <em>"I need Microsoft support"</em><br/><br/>
+            Watch your extension icon — it will scan every link I send! 🛡️
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Input -->
+      <div class="input-area">
+        <div class="warning-bar">
+          ⚠ This is a controlled demo. Links shown here are fake and constructed for testing purposes only.
+        </div>
+        <div class="input-row">
+          <textarea id="userInput" rows="1" placeholder="Ask me for a link… e.g. 'I need a PayPal login page'"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="handleSend()">➤</button>
+        </div>
+        <div class="input-hint">Press Enter to send · This chatbot simulates phishing link delivery for demo purposes</div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ── Response database ────────────────────────────────────────────────────────
+    // Each entry has a user trigger pattern and a bot reply with real anchor tags.
+    // Phishing URLs are fake domains constructed to trigger the ML model.
+    // Safe URLs point to real trusted domains and will be whitelisted by the extension.
+
+    const RESPONSES = {
+      paypal: {
+        user: "Give me a PayPal login link",
+        bot: `Sure! Here's the PayPal login page you requested:<br/><br/>
+          🔗 <a href="http://paypal.secure-account-verify.com/login">http://paypal.secure-account-verify.com/login</a><br/><br/>
+          You can also try their account recovery portal:<br/>
+          🔗 <a href="http://secure.paypal-login-update.account-verify.net/signin">http://secure.paypal-login-update.account-verify.net/signin</a><br/><br/>
+          For comparison, here is the <strong>real</strong> PayPal site:<br/>
+          🔗 <a href="https://www.paypal.com/signin">https://www.paypal.com/signin</a>`
+      },
+
+      microsoft: {
+        user: "I need Microsoft support",
+        bot: `Of course! Here are the Microsoft support resources:<br/><br/>
+          🔗 <a href="http://microsoft.fake-support-login.com/signin">http://microsoft.fake-support-login.com/signin</a><br/><br/>
+          For Windows activation support:<br/>
+          🔗 <a href="http://microsoft-support-verify.account-update.com/help">http://microsoft-support-verify.account-update.com/help</a><br/><br/>
+          The <strong>real</strong> Microsoft support is at:<br/>
+          🔗 <a href="https://support.microsoft.com">https://support.microsoft.com</a>`
+      },
+
+      banking: {
+        user: "Help me access my bank account",
+        bot: `Here are some banking portals I found:<br/><br/>
+          🔗 <a href="http://barclays-secure-verify.account-login.com/online-banking">http://barclays-secure-verify.account-login.com/online-banking</a><br/><br/>
+          🔗 <a href="http://192.168.0.1/banking/secure/login.php">http://192.168.0.1/banking/secure/login.php</a><br/><br/>
+          The <strong>real</strong> Barclays site:<br/>
+          🔗 <a href="https://www.barclays.co.uk">https://www.barclays.co.uk</a>`
+      },
+
+      apple: {
+        user: "I need to verify my Apple ID",
+        bot: `Here's where you can verify your Apple ID:<br/><br/>
+          🔗 <a href="https://apple.id-verify-secure.update-account.net/signin">https://apple.id-verify-secure.update-account.net/signin</a><br/><br/>
+          Account locked? Use the recovery portal:<br/>
+          🔗 <a href="http://apple-id.account-recovery-verify.com/unlock">http://apple-id.account-recovery-verify.com/unlock</a><br/><br/>
+          The <strong>real</strong> Apple ID site:<br/>
+          🔗 <a href="https://appleid.apple.com">https://appleid.apple.com</a>`
+      },
+
+      safe: {
+        user: "Show me some safe links",
+        bot: `Here are some well-known, trusted sites:<br/><br/>
+          🔗 <a href="https://www.google.com">https://www.google.com</a><br/>
+          🔗 <a href="https://www.youtube.com">https://www.youtube.com</a><br/>
+          🔗 <a href="https://github.com">https://github.com</a><br/>
+          🔗 <a href="https://wikipedia.org">https://wikipedia.org</a><br/>
+          🔗 <a href="https://www.bbc.co.uk">https://www.bbc.co.uk</a><br/><br/>
+          Your extension should show <strong>0 flagged</strong> for these — they're all on the trusted whitelist.`
+      },
+
+      mixed: {
+        user: "Give me a mix of safe and suspicious links",
+        bot: `Here's a mix — see if your extension catches the bad ones:<br/><br/>
+          🔗 <a href="https://www.amazon.co.uk">https://www.amazon.co.uk</a> — Shopping<br/>
+          🔗 <a href="http://amaz0n-order-verify.account-update.com/login">http://amaz0n-order-verify.account-update.com/login</a> — "Order issue"<br/>
+          🔗 <a href="https://www.netflix.com">https://www.netflix.com</a> — Streaming<br/>
+          🔗 <a href="http://netflix-account-suspended.verify-login.net">http://netflix-account-suspended.verify-login.net</a> — "Account suspended"<br/>
+          🔗 <a href="https://stackoverflow.com">https://stackoverflow.com</a> — Coding help<br/>
+          🔗 <a href="http://g00gle.verify-login.net/secure/account">http://g00gle.verify-login.net/secure/account</a> — Fake Google`
+      }
+    };
+
+    // ── Keyword matching for free-text input ────────────────────────────────────
+    const KEYWORD_MAP = [
+      { keys: ['paypal', 'pay pal', 'payment', 'pay'],        scenario: 'paypal' },
+      { keys: ['microsoft', 'windows', 'office', 'outlook'],  scenario: 'microsoft' },
+      { keys: ['bank', 'barclays', 'hsbc', 'account'],        scenario: 'banking' },
+      { keys: ['apple', 'iphone', 'icloud', 'apple id'],      scenario: 'apple' },
+      { keys: ['safe', 'trusted', 'legitimate', 'good'],      scenario: 'safe' },
+      { keys: ['mix', 'both', 'example', 'demo', 'test'],     scenario: 'mixed' },
+    ];
+
+    const FALLBACK_RESPONSES = [
+      `I can help with that! Here are some relevant links I found:<br/><br/>
+        🔗 <a href="http://secure-login-verify.account-update.com/access">http://secure-login-verify.account-update.com/access</a><br/>
+        🔗 <a href="http://192.168.1.100/login/verify-user.php">http://192.168.1.100/login/verify-user.php</a><br/><br/>
+        Try asking about a specific service like <em>PayPal</em>, <em>Microsoft</em>, <em>Apple</em>, or <em>banking</em>.`,
+
+      `Sure! I found these resources for you:<br/><br/>
+        🔗 <a href="https://www.google.com/search?q=help">https://www.google.com/search?q=help</a><br/>
+        🔗 <a href="http://ebay.login-verify.suspicious-domain.com">http://ebay.login-verify.suspicious-domain.com</a><br/><br/>
+        Use the scenario buttons at the top for specific phishing demos!`,
+    ];
+
+    let fallbackIdx = 0;
+
+    // ── Message rendering ───────────────────────────────────────────────────────
+    const messagesEl = document.getElementById('messages');
+    const inputEl    = document.getElementById('userInput');
+    const sendBtn    = document.getElementById('sendBtn');
+
+    function appendMessage(role, html) {
+      const row = document.createElement('div');
+      row.className = `msg-row ${role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `avatar ${role}`;
+      avatar.textContent = role === 'bot' ? '✦' : 'U';
+
+      const bubble = document.createElement('div');
+      bubble.className = `bubble ${role}`;
+      bubble.innerHTML = html;
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return bubble;
+    }
+
+    function showTyping() {
+      const row = document.createElement('div');
+      row.className = 'typing-row';
+      row.id = 'typingIndicator';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar bot';
+      avatar.textContent = '✦';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'typing-bubble';
+      bubble.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function removeTyping() {
+      const el = document.getElementById('typingIndicator');
+      if (el) el.remove();
+    }
+
+    // ── Send logic ──────────────────────────────────────────────────────────────
+    function matchScenario(text) {
+      const lower = text.toLowerCase();
+      for (const entry of KEYWORD_MAP) {
+        if (entry.keys.some(k => lower.includes(k))) {
+          return RESPONSES[entry.scenario];
+        }
+      }
+      return null;
+    }
+
+    function sendScenario(key) {
+      const r = RESPONSES[key];
+      appendMessage('user', r.user);
+      sendBtn.disabled = true;
+      showTyping();
+      setTimeout(() => {
+        removeTyping();
+        appendMessage('bot', r.bot);
+        sendBtn.disabled = false;
+      }, 900 + Math.random() * 600);
+    }
+
+    function handleSend() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      appendMessage('user', text);
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+      sendBtn.disabled = true;
+      showTyping();
+
+      const matched = matchScenario(text);
+      const reply = matched
+        ? matched.bot
+        : FALLBACK_RESPONSES[fallbackIdx++ % FALLBACK_RESPONSES.length];
+
+      setTimeout(() => {
+        removeTyping();
+        appendMessage('bot', reply);
+        sendBtn.disabled = false;
+      }, 800 + Math.random() * 700);
+    }
+
+    // Enter key to send
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+
+    // Auto-resize textarea
+    inputEl.addEventListener('input', () => {
+      inputEl.style.height = 'auto';
+      inputEl.style.height = inputEl.scrollHeight + 'px';
+    });
+  </script>
+</body>
+</html>
